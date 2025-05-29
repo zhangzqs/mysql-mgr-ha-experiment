@@ -1,0 +1,34 @@
+name: "mysql-mgr-ha-experiment"
+services:
+  db1:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: db1
+    environment:
+      DB_PASSWORD: "test@1234"
+    volumes:
+      - /var/lib/mysql
+      - ./conf/db1.cnf:/etc/mysql/mysql.conf.d/mysqld.cnf:ro
+
+  db2:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: db2
+    environment:
+      DB_PASSWORD: "test@1234"
+    volumes:
+      - /var/lib/mysql
+      - ./conf/db2.cnf:/etc/mysql/mysql.conf.d/mysqld.cnf:ro
+
+  db3:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: db3
+    environment:
+      DB_PASSWORD: "test@1234"
+    volumes:
+      - /var/lib/mysql
+      - ./conf/db3.cnf:/etc/mysql/mysql.conf.d/mysqld.cnf:ro

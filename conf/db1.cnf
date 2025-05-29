@@ -1,0 +1,25 @@
+[mysqld]
+# 基础配置
+pid-file        = /var/run/mysqld/mysqld.pid
+socket          = /var/run/mysqld/mysqld.sock
+datadir         = /var/lib/mysql
+log-error       = /var/log/mysql/error.log
+
+server_id = 1  # 每个节点唯一（1, 2, 3）
+log_bin = mysql-bin
+binlog_format = ROW
+binlog_checksum = NONE
+gtid_mode = ON
+enforce_gtid_consistency = ON
+
+# Group Replication 配置
+plugin_load_add = 'group_replication.so'
+transaction_write_set_extraction = XXHASH64
+loose-group_replication_group_name = "9c1fb0f4-8b94-4378-81b9-7e693b3f42a7"  # 唯一UUID
+loose-group_replication_start_on_boot = OFF
+loose-group_replication_local_address = "db1:33061"  # 当前节点IP:端口
+loose-group_replication_group_seeds = "db1:33061,db2:33061,db3:33061"
+loose-group_replication_bootstrap_group = OFF  # 仅引导节点临时设为ON
+
+report_host=db1
+report_port=3306
