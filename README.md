@@ -1,5 +1,18 @@
 # mysql-mgr-ha-experiment
 
+## 省流步骤总结
+
+1. 准备三台 db 主机服务器 db1/db2/db3
+2. db1/db2/db3 依次安装相关 deb 包
+3. db1/db2/db3 执行命令，复制 mysqld.cnf 配置文件，其中配置了三个节点的信息
+4. db1/db2/db3 执行命令，初始化数据目录，设置数据库 root 用户密码
+5. db1/db2/db3 执行命令，修改 auto.cnf，各自设置互不相同的独立 server_uuid
+6. db1/db2/db3 后台启动 MySQL 服务
+7. db1 执行 SQL 命令，创建复制用户 repl，开启组复制引导，开启组复制
+8. db2/db3 执行 SQL 命令，设置复制通道，启动组复制
+9. db1/db2/db3 执行 SQL 命令，验证组复制状态
+10. 修改 db1/db2/db3 的 mysqld.cnf 配置，使其启动时自动开启组复制
+
 ## 镜像准备
 
 基于容器的测试基于 MGR 的 MySQL 高可用解决方案
@@ -24,13 +37,17 @@ wget https://cdn.mysql.com//Downloads/MySQL-Router/mysql-router-community-dbgsym
 cd
 ```
 
-### 创建 Dockerfile
+### 构建 Docker 镜像
+
+安装 MySQL 8.0.42 和 MySQL Router 8.0.42 的 Dockerfile
+
+创建 `Dockerfile` 文件，
 
 ```dockerfile
-# 略
+# 略，请参考 Dockerfile 文件
 ```
 
-### 构建 Docker 镜像
+构建镜像
 
 ```bash
 docker build --progress=plain -t mysql-mgr-ha:8.0.42 .
@@ -205,10 +222,4 @@ docker exec -it db1 mysql -uroot -ptest@1234 -e "SELECT * FROM performance_schem
 
 实现自动路由到主节点
 
-```bash
-# 启动 MySQL Router
-docker run -d --rm --name mysql-router \
-    -p 6446:6446 \
-    -v $PWD/conf/mysql-router.conf:/etc/mysqlrouter/mysqlrouter.conf \
-    mysql/mysql-router:8.0.42
-```
+略，未完待续
