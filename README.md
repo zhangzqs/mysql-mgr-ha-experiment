@@ -4,14 +4,16 @@
 
 1. 准备三台 db 主机服务器 db1/db2/db3
 2. db1/db2/db3 依次安装相关 deb 包
-3. db1/db2/db3 执行命令，复制 mysqld.cnf 配置文件，其中配置了三个节点的信息
-4. db1/db2/db3 执行命令，初始化数据目录，设置数据库 root 用户密码
-5. db1/db2/db3 执行命令，修改 auto.cnf，各自设置互不相同的独立 server_uuid
-6. db1/db2/db3 后台启动 MySQL 服务
+3. db1/db2/db3 配置 mysqld.cnf 配置文件，其中配置了三个节点的信息
+4. db1/db2/db3 执行 shell 命令，初始化数据目录，设置数据库 root 用户密码
+5. db1/db2/db3 修改 auto.cnf 文件，各自设置互不相同的独立 server_uuid
+6. db1/db2/db3 执行 shell 命令，后台启动 MySQL 服务
 7. db1 执行 SQL 命令，创建复制用户 repl，开启组复制引导，开启组复制
 8. db2/db3 执行 SQL 命令，设置复制通道，启动组复制
-9. db1/db2/db3 执行 SQL 命令，验证组复制状态
+9. db1/db2/db3 执行 SQL 命令，验证组复制状态，测试数据同步（可选）
 10. 修改 db1/db2/db3 的 mysqld.cnf 配置，使其启动时自动开启组复制
+11. 测试自动故障转移，模拟 db1 宕机，验证 db2/db3 自动选举出新的主节点（可选）
+12. 配置 MySQL Router 中间件，实现自动路由到主节点（可选）
 
 ## 镜像准备
 
