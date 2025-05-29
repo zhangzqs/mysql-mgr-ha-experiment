@@ -3,9 +3,15 @@ FROM ubuntu:24.04
 # 换源并更新
 RUN sed -i 's@//.*archive.ubuntu.com@//mirrors.ustc.edu.cn@g' /etc/apt/sources.list.d/ubuntu.sources
 RUN apt update && apt upgrade -y 
+RUN apt install -y uuid-runtime
 
 # 复制MySQL安装包
 COPY ./mysql-deb /tmp/
+
+# 安装router
+RUN apt install -y /tmp/mysql-router-community_8.0.42-1ubuntu24.04_amd64.deb
+RUN apt install -y /tmp/mysql-router-community-dbgsym_8.0.42-1ubuntu24.04_amd64.deb
+RUN apt install -y /tmp/mysql-router_8.0.42-1ubuntu24.04_amd64.deb
 
 # 安装common
 RUN apt install -y /tmp/mysql-common_8.0.42-1ubuntu24.04_amd64.deb
@@ -29,7 +35,4 @@ ADD entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
 EXPOSE 3306
-
-RUN apt install -y uuid-runtime
-
 ENTRYPOINT ["/entrypoint.sh"]

@@ -1,5 +1,7 @@
 # mysql-mgr-ha-experiment
 
+## 镜像准备
+
 基于容器的测试基于 MGR 的 MySQL 高可用解决方案
 
 ```bash
@@ -9,15 +11,26 @@ wget https://dev.mysql.com/get/Downloads/MySQL-8.0/mysql-server_8.0.42-1ubuntu24
 # 解压deb包
 mkdir -p mysql-deb
 tar -xvf mysql-server_8.0.42-1ubuntu24.04_amd64.deb-bundle.tar -C mysql-deb
+
+# 下载 MySQL Router 8.0.42 的 deb 包
+# 在 https://dev.mysql.com/downloads/router/ 下载
+
+cd mysql-deb
+wget https://cdn.mysql.com//Downloads/MySQL-Router/mysql-router_8.0.42-1ubuntu24.04_amd64.deb
+
+wget https://cdn.mysql.com//Downloads/MySQL-Router/mysql-router-community_8.0.42-1ubuntu24.04_amd64.deb
+
+wget https://cdn.mysql.com//Downloads/MySQL-Router/mysql-router-community-dbgsym_8.0.42-1ubuntu24.04_amd64.deb
+cd
 ```
 
-## 创建 Dockerfile
+### 创建 Dockerfile
 
 ```dockerfile
 # 略
 ```
 
-## 构建 Docker 镜像
+### 构建 Docker 镜像
 
 ```bash
 docker build --progress=plain -t mysql-mgr-ha:8.0.42 .
@@ -40,7 +53,7 @@ docker logs -f mysql-mgr-ha
 docker exec -it mysql-mgr-ha mysql -uroot -ptest@1234 -e "show databases;"
 ```
 
-## 启动 MGR 集群
+## 启动 MGR 集群 (使用密码认证，已废弃不推荐)
 
 ```bash
 docker compose up -d
@@ -48,6 +61,8 @@ docker exec -it db1 mysql -uroot -ptest@1234
 docker exec -it db2 mysql -uroot -ptest@1234
 docker exec -it db3 mysql -uroot -ptest@1234
 ```
+
+在 db1 上配置以下 SQL
 
 ```sql
 -- 在 db1 上设置 MGR 集群
@@ -70,6 +85,8 @@ CHANGE MASTER TO MASTER_USER='repl', MASTER_PASSWORD='repl_password' FOR CHANNEL
 SHOW VARIABLES LIKE 'group_replication_single_primary_mode';
 ```
 
+在 db2/db3 上配置以下 SQL
+
 ```sql
 -- 设置复制通道
 CHANGE MASTER TO MASTER_USER='repl', MASTER_PASSWORD='repl_password' FOR CHANNEL 'group_replication_recovery';
@@ -79,7 +96,63 @@ START GROUP_REPLICATION;
 SELECT * FROM performance_schema.replication_group_members;
 ```
 
-## 测试 MGR 集群
+## 启动 MGR 集群 (使用 SSL/TLS 认证)
+
+MySQL 8.0 版本开始不推荐使用密码认证，推荐使用 SSL 加密认证
+
+```bash
+# 生成证书
+# 在宿主机生成证书（若使用 Docker，需挂载到容器）
+mkdir -p ssl
+openssl req -x509 -newkey rsa:4096 -nodes -days 36500 \
+  -keyout ca-key.pem -out ca.pem \
+  -subj "/CN=MySQL MGR CA"
+openssl req -x509 -newkey rsa:4096 -nodes -days 36500 \
+  -keyout server-key.pem -out server-cert.pem \
+  -subj "/CN=mysql-mgr-node"
+chmod 600 ca.pem ca-key.pem server-cert.pem server-key.pem
+
+docker compose up -d
+docker exec -it db1 mysql -uroot -ptest@1234
+docker exec -it db2 mysql -uroot -ptest@1234
+docker exec -it db3 mysql -uroot -ptest@1234
+```
+
+在 db1 上配置以下 SQL
+
+```sql
+-- 在 db1 上设置 MGR 集群
+CREATE USER 'repl'@'%' IDENTIFIED  WITH mysql_native_password BY 'repl_password';
+GRANT REPLICATION SLAVE ON *.* TO 'repl'@'%';
+FLUSH PRIVILEGES;
+
+-- 启动组复制引导
+SET GLOBAL group_replication_bootstrap_group = ON;
+START GROUP_REPLICATION;
+SET GLOBAL group_replication_bootstrap_group = OFF;
+
+-- 检查组状态（应显示ONLINE）
+SELECT * FROM performance_schema.replication_group_members;
+
+-- 配置当 db1 作为 SECONDARY 节点时的复制通道
+CHANGE MASTER TO MASTER_USER='repl', MASTER_PASSWORD='repl_password' FOR CHANNEL 'group_replication_recovery';
+
+-- 检查是否处于单主模式（不太推荐使用多主模式，存在各种问题）
+SHOW VARIABLES LIKE 'group_replication_single_primary_mode';
+```
+
+在 db2/db3 上配置以下 SQL
+
+```sql
+-- 设置复制通道
+CHANGE MASTER TO MASTER_USER='repl', MASTER_PASSWORD='repl_password' FOR CHANNEL 'group_replication_recovery';
+-- 启动组复制
+START GROUP_REPLICATION;
+-- 验证节点状态
+SELECT * FROM performance_schema.replication_group_members;
+```
+
+### 测试 MGR 集群同步
 
 ```sql
 -- 在 db1 上创建测试数据库
@@ -103,14 +176,16 @@ SELECT * FROM users;
 INSERT INTO users (name) VALUES ('Charlie');
 ```
 
-## 修改配置，每次启动时自动开启组复制
+### 开启自动组复制
 
 ```bash
 # 修改 db1/db2/db3 的 MySQL 配置，使其启动时自动开启组复制
 sed -i 's/^loose-group_replication_start_on_boot = OFF/loose-group_replication_start_on_boot = ON/' conf/db1.cnf conf/db2.cnf conf/db3.cnf
 ```
 
-## 故障恢复测试
+### 自动故障恢复测试
+
+故障转移演习
 
 ```bash
 # 停止 db1 容器
@@ -124,4 +199,16 @@ docker exec -it db3 mysql -uroot -ptest@1234 -e "SELECT * FROM performance_schem
 docker start db1
 # 查看 db1 的状态
 docker exec -it db1 mysql -uroot -ptest@1234 -e "SELECT * FROM performance_schema.replication_group_members;"
+```
+
+## 配置 MySQL Router 中间件
+
+实现自动路由到主节点
+
+```bash
+# 启动 MySQL Router
+docker run -d --rm --name mysql-router \
+    -p 6446:6446 \
+    -v $PWD/conf/mysql-router.conf:/etc/mysqlrouter/mysqlrouter.conf \
+    mysql/mysql-router:8.0.42
 ```

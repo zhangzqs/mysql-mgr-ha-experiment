@@ -8,8 +8,9 @@ services:
     environment:
       DB_PASSWORD: "test@1234"
     volumes:
-      - /var/lib/mysql
+      - /var/lib/mysql # 临时非持久化数据目录
       - ./conf/db1.cnf:/etc/mysql/mysql.conf.d/mysqld.cnf:ro
+      - ./ssl:/etc/mysql/ssl
 
   db2:
     build:
@@ -19,8 +20,9 @@ services:
     environment:
       DB_PASSWORD: "test@1234"
     volumes:
-      - /var/lib/mysql
+      - /var/lib/mysql # 临时非持久化数据目录
       - ./conf/db2.cnf:/etc/mysql/mysql.conf.d/mysqld.cnf:ro
+      - ./ssl:/etc/mysql/ssl:ro
 
   db3:
     build:
@@ -30,5 +32,17 @@ services:
     environment:
       DB_PASSWORD: "test@1234"
     volumes:
-      - /var/lib/mysql
+      - /var/lib/mysql # 临时非持久化数据目录
       - ./conf/db3.cnf:/etc/mysql/mysql.conf.d/mysqld.cnf:ro
+      - ./ssl:/etc/mysql/ssl:ro
+
+  # router:
+  #   build:
+  #     context: .
+  #     dockerfile: Dockerfile
+  #   container_name: router
+  #   ports:
+  #     - "6446:6446"
+  #   volumes:
+  #     - /var/lib/mysql
+  #     - ./conf/router.cnf:/etc/mysql/mysql-router.conf.d/mysqlrouter.conf:ro
