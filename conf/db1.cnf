@@ -12,6 +12,12 @@ binlog_checksum = NONE
 gtid_mode = ON
 enforce_gtid_consistency = ON
 
+# MySQL 作为 Secondary 角色时，使用当前主机名作为中继日志文件名，若主机名发生变更（如容器环境中），则找不到历史日志文件
+# binlog 路径可选固定
+relay-log = mysql-relay-bin
+relay-log-index = mysql-relay-bin.index
+log-bin = mysql-bin 
+
 # SSL 证书配置
 group_replication_ssl_mode = REQUIRED
 group_replication_recovery_ssl_ca = /etc/mysql/ssl/ca.pem

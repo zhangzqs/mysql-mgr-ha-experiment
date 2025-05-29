@@ -115,7 +115,7 @@ START GROUP_REPLICATION;
 SELECT * FROM performance_schema.replication_group_members;
 ```
 
-## 启动 MGR 集群 (使用 SSL/TLS 认证)
+## 启动 MGR 集群 (使用 SSL/TLS + 密码认证)
 
 MySQL 8.0 版本开始不推荐使用密码认证，推荐使用 SSL 加密认证
 
@@ -123,12 +123,18 @@ MySQL 8.0 版本开始不推荐使用密码认证，推荐使用 SSL 加密认�
 # 生成证书
 # 在宿主机生成证书（若使用 Docker，需挂载到容器）
 mkdir -p ssl
-openssl req -x509 -newkey rsa:4096 -nodes -days 36500 \
+# 生成 CA 证书
+openssl req -x509 -newkey rsa:4096 -nodes -days 3650 \
   -keyout ca-key.pem -out ca.pem \
   -subj "/CN=MySQL MGR CA"
-openssl req -x509 -newkey rsa:4096 -nodes -days 36500 \
+# 生成服务器证书
+openssl req -x509 -newkey rsa:4096 -nodes -days 3650 \
   -keyout server-key.pem -out server-cert.pem \
   -subj "/CN=mysql-mgr-node"
+# 生成客户端证书
+openssl req -x509 -newkey rsa:4096 -nodes -days 3650 \
+  -keyout client-key.pem -out client-cert.pem \
+  -subj "/CN=mysql-mgr-client"
 chmod 600 ca.pem ca-key.pem server-cert.pem server-key.pem
 
 docker compose up -d
@@ -141,7 +147,7 @@ docker exec -it db3 mysql -uroot -ptest@1234
 
 ```sql
 -- 在 db1 上设置 MGR 集群
-CREATE USER 'repl'@'%' IDENTIFIED  WITH mysql_native_password BY 'repl_password';
+CREATE USER 'repl'@'%' IDENTIFIED  WITH caching_sha2_password BY 'repl_password';
 GRANT REPLICATION SLAVE ON *.* TO 'repl'@'%';
 FLUSH PRIVILEGES;
 
