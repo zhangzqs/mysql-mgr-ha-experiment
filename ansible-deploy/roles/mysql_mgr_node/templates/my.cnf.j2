@@ -1,0 +1,31 @@
+[mysqld]
+# 通用配置
+datadir = {{ mysql_datadir }}
+socket = /var/lib/mysql/mysql.sock
+log-error = /var/log/mysqld.log
+pid-file = /var/run/mysqld/mysqld.pid
+
+# 网络
+bind-address = 0.0.0.0
+port = 3306
+
+# 复制必需配置
+server-id = {{ node_id }}
+gtid_mode = ON
+enforce_gtid_consistency = ON
+binlog_checksum = NONE
+log_bin = binlog
+log_slave_updates = ON
+binlog_format = ROW
+master_info_repository = TABLE
+relay_log_info_repository = TABLE
+transaction_write_set_extraction = XXHASH64
+
+# Group Replication 配置
+plugin_load_add = 'group_replication.so'
+loose_group_replication_group_name = "{{ mgr_group_name }}"
+loose_group_replication_start_on_boot = OFF
+loose_group_replication_local_address = "{{ ansible_host }}:{{ group_replication_port }}"
+loose_group_replication_group_seeds = "{{ group_seeds }}"
+loose_group_replication_single_primary_mode = ON
+loose_group_replication_bootstrap_group = OFF  # 通过脚本控制引导

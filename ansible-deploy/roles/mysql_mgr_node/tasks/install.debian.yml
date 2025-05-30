@@ -1,0 +1,31 @@
+- name: Install prerequisites
+  apt: 
+    name:
+      - gnupg
+      - lsb-release
+    state: present
+    update_cache: yes
+
+- name: Add MySQL APT repository
+  apt_repository:
+    repo: "deb http://repo.mysql.com/apt/{{ ansible_distribution | lower }} {{ ansible_distribution_release | lower }} mysql-8.0"
+    state: present
+    filename: 'mysql'
+    gpg_key: 'https://repo.mysql.com/RPM-GPG-KEY-mysql-2022'
+
+- name: Update APT package cache
+  apt:
+    update_cache: yes
+
+- name: Install MySQL Server
+  apt:
+    name: 
+      - mysql-community-server
+      - mysql-community-client
+    state: present
+
+- name: Ensure MySQL service is started and enabled
+  service:
+    name: mysql
+    state: started
+    enabled: yes

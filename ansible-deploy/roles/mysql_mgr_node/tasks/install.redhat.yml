@@ -1,0 +1,18 @@
+- name: Add MySQL Yum Repository
+  yum_repository:
+    name: mysql80
+    description: MySQL 8.0 Repo
+    baseurl: https://repo.mysql.com/yum/mysql-8.0-community/el/$releasever/$basearch/
+    gpgkey: https://repo.mysql.com/RPM-GPG-KEY-mysql-2022
+    gpgcheck: yes
+
+- name: Install MySQL Server
+  yum:
+    name: mysql-community-server
+    state: present
+
+- name: Ensure MySQL service is started and enabled
+  service:
+    name: mysqld
+    state: started
+    enabled: yes

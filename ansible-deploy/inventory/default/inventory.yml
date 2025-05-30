@@ -1,0 +1,18 @@
+all:
+  hosts:
+    localhost: # 用于在Ansible控制机上执行一些任务时使用
+      ansible_connection: local
+    node1:
+    ndoe2:
+    node3:
+  children:
+    mysql_mgr_servers:
+      hosts:
+        node1: {}
+        node2: {}
+        node3: {}
+      vars:
+        mysql_mgr_group_name: "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"  # 唯一UUID
+        mysql_mgr_user: "mgruser"
+        mysql_mgr_password: "SecurePass123!"         # 请替换为强密码
+        mysql_group_seeds: "{{ groups['mysql_mgr_servers'] | map('extract', hostvars, ['ansible_host']) | join(':33061,') }}:33061"

@@ -1,0 +1,12 @@
+# MySQL 版本
+mysql_version: "8.0"
+
+# 系统账户
+mysql_user: "mysql"
+mysql_group: "mysql"
+
+# 数据目录
+mysql_datadir: "/var/lib/mysql"
+
+# MGR端口
+group_replication_port: 33061

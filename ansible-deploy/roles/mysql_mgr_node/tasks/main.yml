@@ -1,0 +1,13 @@
+- name: Install MySQL (RedHat)
+  include_tasks: install_RedHat.yml
+  when: ansible_os_family == 'RedHat'
+
+- name: Install MySQL (Debian)
+  include_tasks: install_Debian.yml
+  when: ansible_os_family == 'Debian'
+
+- name: Configure MySQL
+  include_tasks: config_mysql.yml
+
+- name: Initialize MySQL & Configure MGR
+  include_tasks: initialize.yml

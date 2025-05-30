@@ -1,0 +1,65 @@
+- name: Get temporary root password
+  shell: "grep 'temporary password' /var/log/mysqld.log | awk '{print $NF}'"
+  register: tmp_pass
+  ignore_errors: true
+  changed_when: false
+
+- name: Set new root password
+  mysql_user:
+    login_user: "root"
+    login_password: "{{ tmp_pass.stdout | default(omit) }}"
+    user: root
+    password: "{{ mysql_root_password | default('MyRootPass123!') }}"  # 替换为实际密码
+    host: localhost
+    check_implicit_admin: "{{ tmp_pass is succeeded }}"
+    state: present
+
+- name: Configure replication user (所有节点)
+  mysql_user:
+    login_user: root
+    login_password: "{{ mysql_root_password | default('MyRootPass123!') }}"
+    user: "{{ mgr_user }}"
+    password: "{{ mgr_password }}"
+    priv: "*.*:REPLICATION SLAVE,GROUP_REPLICATION_ADMIN"
+    host: "%"
+    state: present
+
+- name: Reset master (清理二进制日志)
+  mysql_query:
+    login_user: root
+    login_password: "{{ mysql_root_password | default('MyRootPass123!') }}"
+    query: "RESET MASTER"
+
+- name: Bootstrap first node (仅首节点)
+  block:
+    - name: Enable bootstrap mode temporarily
+      lineinfile:
+        path: /etc/my.cnf
+        regexp: '^loose_group_replication_bootstrap_group'
+        line: 'loose_group_replication_bootstrap_group = ON'
+      notify: Restart MySQL
+
+    - name: Start group replication (引导)
+      mysql_query:
+        login_user: root
+        login_password: "{{ mysql_root_password | default('MyRootPass123!') }}"
+        query: |
+          START GROUP_REPLICATION;
+          SET GLOBAL group_replication_bootstrap_group=OFF;
+
+    - name: Disable bootstrap mode
+      lineinfile:
+        path: /etc/my.cnf
+        regexp: '^loose_group_replication_bootstrap_group'
+        line: 'loose_group_replication_bootstrap_group = OFF'
+      notify: Restart MySQL
+  when: inventory_hostname == 'mg1'  # 根据inventory名称调整
+
+- name: Join other nodes (非首节点)
+  block:
+    - name: Start group replication (加入集群)
+      mysql_query:
+        login_user: root
+        login_password: "{{ mysql_root_password | default('MyRootPass123!') }}"
+        query: "START GROUP_REPLICATION"
+  when: inventory_hostname != 'mg1'

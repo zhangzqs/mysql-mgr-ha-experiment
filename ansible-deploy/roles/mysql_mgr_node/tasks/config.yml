@@ -1,0 +1,22 @@
+- name: Create custom conf.d directory
+  file:
+    path: /etc/mysql/conf.d
+    state: directory
+    owner: root
+    group: root
+
+- name: Deploy customized my.cnf
+  template:
+    src: my.cnf.j2
+    dest: /etc/my.cnf
+    owner: root
+    group: root
+  notify: Restart MySQL
+
+- name: Create datadir if not exists
+  file:
+    path: "{{ mysql_datadir }}"
+    state: directory
+    owner: "{{ mysql_user }}"
+    group: "{{ mysql_group }}"
+    mode: 0755
