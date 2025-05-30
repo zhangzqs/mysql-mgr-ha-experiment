@@ -30,13 +30,19 @@ tar -xvf mysql-server_8.0.42-1ubuntu24.04_amd64.deb-bundle.tar -C mysql-deb
 # 下载 MySQL Router 8.0.42 的 deb 包
 # 在 https://dev.mysql.com/downloads/router/ 下载
 
+# 下载 MySQL Shell 8.0.42 的 deb 包
+# 在 https://dev.mysql.com/downloads/shell/ 下载
+
 cd mysql-deb
 wget https://cdn.mysql.com//Downloads/MySQL-Router/mysql-router_8.0.42-1ubuntu24.04_amd64.deb
-
 wget https://cdn.mysql.com//Downloads/MySQL-Router/mysql-router-community_8.0.42-1ubuntu24.04_amd64.deb
-
 wget https://cdn.mysql.com//Downloads/MySQL-Router/mysql-router-community-dbgsym_8.0.42-1ubuntu24.04_amd64.deb
-cd
+cd ..
+
+cd mysql-deb
+wget https://dev.mysql.com/get/Downloads/MySQL-Shell/mysql-shell-dbgsym_8.0.42-1ubuntu24.04_amd64.deb
+wget https://dev.mysql.com/get/Downloads/MySQL-Shell/mysql-shell_8.0.42-1ubuntu24.04_amd64.deb
+cd ..
 ```
 
 ### 构建 Docker 镜像
@@ -115,7 +121,7 @@ START GROUP_REPLICATION;
 SELECT * FROM performance_schema.replication_group_members;
 ```
 
-## 启动 MGR 集群 (使用 SSL/TLS + 密码认证)
+## 启动 MGR 集群 (使用 SSL/TLS + 密码认证) (未完成)
 
 MySQL 8.0 版本开始不推荐使用密码认证，推荐使用 SSL 加密认证
 
@@ -203,6 +209,10 @@ INSERT INTO users (name) VALUES ('Charlie');
 
 ### 开启自动组复制
 
+经实测，这个开关无法在配置完成之前开启，必须在组复制配置完成后才能开启。
+
+如果在组复制集群配置完成之前开启，将导致 db1 节点大量组复制相关报错，且无法正常配置 db2/db3 为 SECONDARY 节点，导致所有的 SECONDARY 节点都变成 RECOVERING 状态，正常应当处于 ONLINE 状态。
+
 ```bash
 # 修改 db1/db2/db3 的 MySQL 配置，使其启动时自动开启组复制
 sed -i 's/^loose-group_replication_start_on_boot = OFF/loose-group_replication_start_on_boot = ON/' conf/db1.cnf conf/db2.cnf conf/db3.cnf
@@ -228,6 +238,37 @@ docker exec -it db1 mysql -uroot -ptest@1234 -e "SELECT * FROM performance_schem
 
 ## 配置 MySQL Router 中间件
 
-实现自动路由到主节点
+[MySQL Router 8.0 配置文档](https://dev.mysql.com/doc/mysql-router/8.0/en/)
 
-略，未完待续
+实现自动路由写请求到主节点，读请求在各个节点间负载均衡。
+
+在任意节点执行，确保所有节点状态处于 ONLINE
+
+```sql
+SELECT * FROM performance_schema.replication_group_members;
+```
+
+在 db1 上创建 MySQL Router 用户，用于授权给 MySQL Router 中间件访问一些数据库集群的元数据。
+
+`mysqlrouter_password` 是 `mysqlrouter`用户的密码，需自行设置。
+
+```sh
+docker exec -it db1 mysql -uroot -ptest@1234
+```
+
+```sql
+CREATE USER 'mysqlrouter'@'%' IDENTIFIED WITH mysql_native_password BY 'mysqlrouter_password';
+GRANT SELECT ON mysql_innodb_cluster_metadata.* TO 'mysqlrouter'@'%';
+GRANT SELECT ON performance_schema.* TO 'mysqlrouter'@'%';
+FLUSH PRIVILEGES;
+```
+
+在 db1 上执行以下命令，生成 MySQL Router 的配置文件。
+
+```sh
+docker exec -it db1 bash
+```
+
+```bash
+mysqlrouter --bootstrap mysqlrouter@db1:3306 --directory /tmp/myrouter --conf-use-sockets --user=mysql --account mysqlrouter --account-create always
+```

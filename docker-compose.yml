@@ -43,13 +43,15 @@ services:
       - SYS_NICE # 允许容器执行 mbind
 
 
-  # router:
-  #   build:
-  #     context: .
-  #     dockerfile: Dockerfile
-  #   container_name: router
-  #   ports:
-  #     - "6446:6446"
-  #   volumes:
-  #     - /var/lib/mysql
-  #     - ./conf/router.cnf:/etc/mysql/mysql-router.conf.d/mysqlrouter.conf:ro
+  router:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: router
+    ports:
+      - "6446:6446"
+      - "6447:6447"
+    volumes:
+      - /var/lib/mysql
+      - ./conf/router.conf:/mysql-router.conf.d/mysqlrouter.conf:ro
+    entrypoint: ["mysqlrouter", "-c", "/mysql-router.conf.d/mysqlrouter.conf"]
