@@ -27,6 +27,10 @@ RUN apt install -y /tmp/mysql-community-server-core_8.0.42-1ubuntu24.04_amd64.de
 RUN apt install -y /tmp/mysql-community-server_8.0.42-1ubuntu24.04_amd64.deb
 RUN apt install -y /tmp/mysql-server_8.0.42-1ubuntu24.04_amd64.deb
 
+# 安装shell
+RUN apt install -y /tmp/mysql-shell_8.0.42-1ubuntu24.04_amd64.deb
+RUN apt install -y /tmp/mysql-shell-dbgsym_8.0.42-1ubuntu24.04_amd64.deb
+
 # 设置环境变量
 ENV MYSQL_HOME=/usr/bin
 ENV PATH=$MYSQL_HOME:$PATH

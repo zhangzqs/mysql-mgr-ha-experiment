@@ -1,5 +1,6 @@
 [mysqld]
 # 基础配置
+datadir = /var/lib/mysql
 pid-file        = /var/run/mysqld/mysqld.pid
 socket          = /var/run/mysqld/mysqld.sock
 datadir         = /var/lib/mysql
@@ -9,7 +10,9 @@ server_id = 3  # 每个节点唯一（1, 2, 3）
 log_bin = mysql-bin
 binlog_format = ROW
 binlog_checksum = NONE
-gtid_mode = ON
+# 全局事务
+gtid_mode = ON 
+# 强制GTID的一致性
 enforce_gtid_consistency = ON
 
 # MySQL 作为 Secondary 角色时，使用当前主机名作为中继日志文件名，若主机名发生变更（如容器环境中），则找不到历史日志文件
