@@ -21,15 +21,6 @@ relay-log = mysql-relay-bin
 relay-log-index = mysql-relay-bin.index
 log-bin = mysql-bin 
 
-# SSL 证书配置
-# group_replication_ssl_mode = REQUIRED
-# group_replication_recovery_ssl_ca = /etc/mysql/ssl/ca.pem
-# group_replication_recovery_ssl_cert = /etc/mysql/ssl/server-cert.pem
-# group_replication_recovery_ssl_key = /etc/mysql/ssl/server-key.pem
-# ssl-ca = /etc/mysql/ssl/ca.pem
-# ssl-cert = /etc/mysql/ssl/server-cert.pem
-# ssl-key = /etc/mysql/ssl/server-key.pem
-
 # Group Replication 配置
 plugin_load_add = 'group_replication.so'
 transaction_write_set_extraction = XXHASH64

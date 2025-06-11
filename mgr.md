@@ -121,68 +121,6 @@ START GROUP_REPLICATION;
 SELECT * FROM performance_schema.replication_group_members;
 ```
 
-## 启动 MGR 集群 (使用 SSL/TLS + 密码认证) (未完成)
-
-MySQL 8.0 版本开始不推荐使用密码认证，推荐使用 SSL 加密认证
-
-```bash
-# 生成证书
-# 在宿主机生成证书（若使用 Docker，需挂载到容器）
-mkdir -p ssl
-# 生成 CA 证书
-openssl req -x509 -newkey rsa:4096 -nodes -days 3650 \
-  -keyout ca-key.pem -out ca.pem \
-  -subj "/CN=MySQL MGR CA"
-# 生成服务器证书
-openssl req -x509 -newkey rsa:4096 -nodes -days 3650 \
-  -keyout server-key.pem -out server-cert.pem \
-  -subj "/CN=mysql-mgr-node"
-# 生成客户端证书
-openssl req -x509 -newkey rsa:4096 -nodes -days 3650 \
-  -keyout client-key.pem -out client-cert.pem \
-  -subj "/CN=mysql-mgr-client"
-chmod 600 ca.pem ca-key.pem server-cert.pem server-key.pem
-
-docker compose up -d
-docker exec -it db1 mysql -uroot -ptest@1234
-docker exec -it db2 mysql -uroot -ptest@1234
-docker exec -it db3 mysql -uroot -ptest@1234
-```
-
-在 db1 上配置以下 SQL
-
-```sql
--- 在 db1 上设置 MGR 集群
-CREATE USER 'repl'@'%' IDENTIFIED  WITH caching_sha2_password BY 'repl_password';
-GRANT REPLICATION SLAVE ON *.* TO 'repl'@'%';
-FLUSH PRIVILEGES;
-
--- 启动组复制引导
-SET GLOBAL group_replication_bootstrap_group = ON;
-START GROUP_REPLICATION;
-SET GLOBAL group_replication_bootstrap_group = OFF;
-
--- 检查组状态（应显示ONLINE）
-SELECT * FROM performance_schema.replication_group_members;
-
--- 配置当 db1 作为 SECONDARY 节点时的复制通道
-CHANGE MASTER TO MASTER_USER='repl', MASTER_PASSWORD='repl_password' FOR CHANNEL 'group_replication_recovery';
-
--- 检查是否处于单主模式（不太推荐使用多主模式，存在各种问题）
-SHOW VARIABLES LIKE 'group_replication_single_primary_mode';
-```
-
-在 db2/db3 上配置以下 SQL
-
-```sql
--- 设置复制通道
-CHANGE MASTER TO MASTER_USER='repl', MASTER_PASSWORD='repl_password' FOR CHANNEL 'group_replication_recovery';
--- 启动组复制
-START GROUP_REPLICATION;
--- 验证节点状态
-SELECT * FROM performance_schema.replication_group_members;
-```
-
 ### 测试 MGR 集群同步
 
 ```sql

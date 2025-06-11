@@ -1,12 +1,4 @@
 #!/bin/bash
-# 如果能找到 /etc/mysql/ssl 目录，则将其中所有文件所属用户改为 mysql
-if [ -d /etc/mysql/ssl ]; then
-    echo "Changing ownership of /etc/mysql/ssl to mysql user..."
-    chown -R mysql:mysql /etc/mysql/ssl
-    echo "Ownership changed."
-else
-    echo "/etc/mysql/ssl directory not found, skipping ownership change."
-fi
 
 # 写入初始化init.sql脚本到tmp
 if [ ! -f /tmp/init.sql ]; then

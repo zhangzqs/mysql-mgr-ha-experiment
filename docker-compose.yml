@@ -10,7 +10,6 @@ services:
     volumes:
       - /var/lib/mysql # 临时非持久化数据目录
       - ./conf/db1.cnf:/etc/mysql/mysql.conf.d/mysqld.cnf:ro
-      - ./ssl:/etc/mysql/ssl
     cap_add:
       - SYS_NICE # 允许容器执行 mbind
 
@@ -24,7 +23,6 @@ services:
     volumes:
       - /var/lib/mysql # 临时非持久化数据目录
       - ./conf/db2.cnf:/etc/mysql/mysql.conf.d/mysqld.cnf:ro
-      - ./ssl:/etc/mysql/ssl:ro
     cap_add:
       - SYS_NICE # 允许容器执行 mbind
 
@@ -38,20 +36,5 @@ services:
     volumes:
       - /var/lib/mysql # 临时非持久化数据目录
       - ./conf/db3.cnf:/etc/mysql/mysql.conf.d/mysqld.cnf:ro
-      - ./ssl:/etc/mysql/ssl:ro
     cap_add:
       - SYS_NICE # 允许容器执行 mbind
-
-
-  router:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    container_name: router
-    ports:
-      - "6446:6446"
-      - "6447:6447"
-    volumes:
-      - /var/lib/mysql
-      - ./conf/router.conf:/mysql-router.conf.d/mysqlrouter.conf:ro
-    entrypoint: ["mysqlrouter", "-c", "/mysql-router.conf.d/mysqlrouter.conf"]

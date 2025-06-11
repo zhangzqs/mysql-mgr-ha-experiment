@@ -1,0 +1,52 @@
+#cloud-config-archive
+- type: "text/cloud-config-archive1"
+  content: |
+    - type: "text/cloud-boothook"
+      content: |
+        #!/bin/sh
+        echo "this is from a cloud-config-archive." > /var/tmp/cloud-config-archive.txt
+    - type: "text/cloud-boothook"
+      content: |
+        #!/bin/sh
+        echo "this is from a cloud-config-archive 2." > /var/tmp/cloud-config-archive2.txt
+
+- type: "text/cloud-boothook"
+  content: |
+    #!/bin/sh
+    echo "this is from a boothook 1." > /var/tmp/boothook1.txt
+
+- type: "text/cloud-boothook"
+  content: |
+    #!/bin/sh
+    echo "this is from a boothook 2." > /var/tmp/boothook2.txt
+
+- type: "text/cloud-config"
+  content: |
+    bootcmd:
+      - echo "this is from a cloud-config 1." > /var/tmp/bootcmd1.txt
+
+- type: "text/cloud-config"
+  content: |
+    merge_how:
+      - name: list
+        settings: [append]
+      - name: dict
+        settings: [no_replace, recurse_list]
+
+    runcmd:
+      - echo "this is from a cloud-config 1." > /var/tmp/runcmd1.txt
+
+- type: "text/cloud-config"
+  content: |
+    merge_how:
+      - name: list
+        settings: [append]
+      - name: dict
+        settings: [no_replace, recurse_list]
+
+    runcmd:
+      - echo "this is from a cloud-config 2." > /var/tmp/runcmd2.txt
+- type: "text/cloud-boothook"
+  content: |
+    #!/bin/sh
+    echo "this is from a boothook 2." > /var/tmp/boothook2.txt

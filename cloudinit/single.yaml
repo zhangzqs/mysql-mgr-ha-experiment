@@ -1,0 +1,64 @@
+#cloud-config
+write_files:
+  # 优化配置文件 (可根据实际路径调整)
+  - path: /etc/mysql/mysql.conf.d/qiniu_stack.cnf
+    content: |
+      [mysqld]
+      bind-address = 0.0.0.0
+      default_authentication_plugin = mysql_native_password
+      innodb_buffer_pool_size = 1G
+      max_connections = 1000
+      character-set-server = utf8mb4
+      collation-server = utf8mb4_unicode_ci
+
+  # 初始化脚本
+  - path: /tmp/init_mysql.sh
+    permissions: 0700
+    content: |
+      #!/bin/bash
+
+      # 安全停止服务并重启（解决预装MySQL首次启动问题）
+      systemctl stop mysql
+      sudo mv /var/lib/mysql/mysql.sock /tmp/mysql.sock.bak 2>/dev/null || true
+      sudo rm -f /var/lib/mysql/ib_logfile* /var/lib/mysql/auto.cnf
+      sudo find /var/lib/mysql -type f -name "*.pid" -delete
+
+      # 首次启动MySQL
+      echo "Initializing MySQL first run..."
+      mysqld --initialize-insecure --user=mysql
+      systemctl start mysql
+
+      # 设置root密码和创建管理员用户
+      echo "Creating admin user: ${ADMIN_USER}"
+      mysql -e "ALTER USER 'root'@'localhost' IDENTIFIED BY '${ROOT_PASSWORD}';"
+      mysql -uroot -p${ROOT_PASSWORD} -e "UNINSTALL COMPONENT 'file://component_validate_password';" || true
+      mysql -uroot -p${ROOT_PASSWORD} -e "CREATE USER '${ADMIN_USER}'@'%' IDENTIFIED BY '${ADMIN_PASSWORD}';"
+      mysql -uroot -p${ROOT_PASSWORD} -e "GRANT ALL PRIVILEGES ON *.* TO '${ADMIN_USER}'@'%' WITH GRANT OPTION;"
+      mysql -uroot -p${ROOT_PASSWORD} -e "FLUSH PRIVILEGES;"
+
+      # 应用安全配置
+      mysql -uroot -p${ROOT_PASSWORD} -e "DELETE FROM mysql.user WHERE User='';"
+      mysql -uroot -p${ROOT_PASSWORD} -e "DELETE FROM mysql.user WHERE User='root' AND Host NOT IN ('localhost', '127.0.0.1', '::1');"
+      mysql -uroot -p${ROOT_PASSWORD} -e "DROP DATABASE IF EXISTS test;"
+
+      # 重启服务加载配置
+      systemctl restart mysql
+
+runcmd:
+  - echo "Initializing standalone MySQL instance..."
+
+  # 设置参数 (生产环境应从Vault/Secrets Manager获取)
+  - export ROOT_PASSWORD="SecureRootPass123!"
+  - export ADMIN_USER="dba_admin"
+  - export ADMIN_PASSWORD="StrongAdminPass!456"
+
+  # 执行初始化
+  - /tmp/init_mysql.sh
+
+  # 清理
+  - rm /tmp/init_mysql.sh
+
+  # 验证服务状态
+  - systemctl status mysql
+
+final_message: "单机MySQL初始化完成 | Admin用户: ${ADMIN_USER}"
